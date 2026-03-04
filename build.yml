@@ -1,0 +1,75 @@
+name: Build PyInstaller Apps v2
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+
+  # ─── macOS Universal (ARM + Intel) ───────────────────────────────────────────
+  build-macos-universal:
+    runs-on: macos-latest  # Runner ARM suffit pour universal2
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          # pip install -r requirements.txt
+
+      - name: Build Universal2 (ARM + Intel)
+        run: |
+          pyinstaller --onefile --windowed --target-arch universal2 --name "TestApp" app.py
+
+      - name: Install create-dmg
+        run: brew install create-dmg
+
+      - name: Create DMG
+        run: |
+          create-dmg \
+            --volname "TestApp" \
+            --window-size 500 300 \
+            --icon-size 100 \
+            --app-drop-link 350 150 \
+            "TestApp-Universal.dmg" \
+            "dist/TestApp.app"
+
+      - name: Upload DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestApp-macOS-Universal-DMG
+          path: TestApp-Universal.dmg
+
+  # ─── Windows (x86_64) ────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller
+          # pip install -r requirements.txt
+
+      - name: Build (Windows)
+        run: |
+          pyinstaller --onefile --windowed --name "TestApp-Windows" app.py
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestApp-Windows
+          path: dist/TestApp-Windows.exe
